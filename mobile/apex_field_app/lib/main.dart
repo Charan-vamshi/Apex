@@ -1,3 +1,4 @@
+import 'screens/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -30,18 +31,3 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class LoginScreen extends StatelessWidget {
-  const LoginScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Apex Login'),
-      ),
-      body: const Center(
-        child: Text('Login Screen - Coming Soon'),
-      ),
-    );
-  }
-}
