@@ -46,21 +46,57 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
     });
 
     try {
-      final userId = Supabase.instance.client.auth.currentUser?.id;
-      if (userId == null) throw Exception('Not logged in');
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) throw Exception('Not logged in');
 
-      // Call your Supabase Edge Function here
-      // For now, just show success
-      setState(() {
-        _statusMessage = 'Visit recorded successfully!';
-      });
+      // Get salesman record
+      final salesmanResponse = await Supabase.instance.client
+          .from('salesmen')
+          .select('id')
+          .eq('user_id', user.id)
+          .single();
 
-      await Future.delayed(const Duration(seconds: 2));
+      final salesmanId = salesmanResponse['id'];
+
+      // Get shop by QR code
+      final shopResponse = await Supabase.instance.client
+          .from('shops')
+          .select('id, shop_name')
+          .eq('qr_code_hash', qrData)
+          .single();
+
+      final shopId = shopResponse['id'];
+      final shopName = shopResponse['shop_name'];
+
+      // Call validation function
+      final response = await Supabase.instance.client.functions.invoke(
+        'validate-visit',
+        body: {
+          'salesmanId': salesmanId,
+          'shopId': shopId,
+          'qrData': qrData,
+          'userLat': position.latitude,
+          'userLng': position.longitude,
+        },
+      );
+
+      if (response.data['success'] == true) {
+        setState(() {
+          _statusMessage = 'Visit to $shopName recorded successfully!\nDistance: ${response.data['distance']}m';
+        });
+      } else {
+        setState(() {
+          _statusMessage = 'Validation failed: ${response.data['errors'].join(', ')}';
+        });
+      }
+
+      await Future.delayed(const Duration(seconds: 3));
       if (mounted) Navigator.pop(context);
     } catch (error) {
       setState(() {
         _statusMessage = 'Error: ${error.toString()}';
       });
+      await Future.delayed(const Duration(seconds: 3));
     } finally {
       setState(() => _isProcessing = false);
     }
