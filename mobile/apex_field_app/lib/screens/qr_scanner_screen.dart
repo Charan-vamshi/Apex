@@ -78,6 +78,9 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
           'userLat': position.latitude,
           'userLng': position.longitude,
         },
+        headers: {
+          'Authorization': 'Bearer ${Supabase.instance.client.auth.currentSession?.accessToken}',
+        },
       );
 
       if (response.data['success'] == true) {
