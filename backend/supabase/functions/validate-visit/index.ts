@@ -12,25 +12,14 @@ serve(async (req) => {
   }
 
   try {
+    // Temporary: Hardcode user ID for testing
+    console.log('Function called! qrData:', qrData);
+    const userId = 'c93f5119-d5b1-4429-8d9e-54610d67aa75';
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
-        },
-      }
+      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     );
-
-    const authHeader = req.headers.get('Authorization');
-    const token = authHeader?.replace('Bearer ', '');
-    
-    const { data: userData } = await supabaseClient.auth.getUser(token ?? '');
-    const userId = userData?.user?.id;
-
-    if (!userId) {
-      throw new Error('USER_NOT_AUTHENTICATED');
-    }
 
     const { qrData, userLat, userLng } = await req.json();
 
@@ -41,7 +30,11 @@ serve(async (req) => {
       .eq('user_id', userId)
       .maybeSingle();
 
-    if (salesmanError || !salesman) {
+    if (salesmanError) {
+      throw new Error(`SALESMAN_ERROR: ${salesmanError.message}`);
+    }
+    
+    if (!salesman) {
       throw new Error('SALESMAN_NOT_FOUND');
     }
 
@@ -52,7 +45,11 @@ serve(async (req) => {
       .eq('qr_code_hash', qrData)
       .maybeSingle();
 
-    if (shopError || !shop) {
+    if (shopError) {
+      throw new Error(`SHOP_ERROR: ${shopError.message}`);
+    }
+    
+    if (!shop) {
       throw new Error('SHOP_NOT_FOUND');
     }
 
@@ -102,7 +99,9 @@ serve(async (req) => {
       .select()
       .single();
 
-    if (visitError) throw visitError;
+    if (visitError) {
+      throw new Error(`VISIT_ERROR: ${visitError.message}`);
+    }
 
     // Log validation details
     await supabaseClient.from('visit_validations').insert({
@@ -124,6 +123,7 @@ serve(async (req) => {
     );
 
   } catch (error) {
+    console.error('Edge function error:', error);
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }

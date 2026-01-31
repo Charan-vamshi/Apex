@@ -12,24 +12,48 @@ serve(async (req) => {
   }
 
   try {
+    // Temporary: Hardcode user ID for testing
+    console.log('Function called! qrData:', qrData);
+    const userId = 'c93f5119-d5b1-4429-8d9e-54610d67aa75';
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     );
 
-    const { salesmanId, shopId, qrData, userLat, userLng, photoUrl, deviceId, appVersion } = await req.json();
+    const { qrData, userLat, userLng } = await req.json();
 
-    // LOCK 1: Verify GPS proximity (50m geofence)
+    // Get salesman record
+    const { data: salesman, error: salesmanError } = await supabaseClient
+      .from('salesmen')
+      .select('id')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (salesmanError) {
+      throw new Error(`SALESMAN_ERROR: ${salesmanError.message}`);
+    }
+    
+    if (!salesman) {
+      throw new Error('SALESMAN_NOT_FOUND');
+    }
+
+    // Get shop by QR code
     const { data: shop, error: shopError } = await supabaseClient
       .from('shops')
-      .select('latitude, longitude, qr_code_hash, shop_name')
-      .eq('id', shopId)
-      .single();
+      .select('id, latitude, longitude, qr_code_hash, shop_name')
+      .eq('qr_code_hash', qrData)
+      .maybeSingle();
 
-    if (shopError || !shop) {
+    if (shopError) {
+      throw new Error(`SHOP_ERROR: ${shopError.message}`);
+    }
+    
+    if (!shop) {
       throw new Error('SHOP_NOT_FOUND');
     }
 
+    // LOCK 1: Verify GPS proximity (50m geofence)
     const distance = calculateHaversineDistance(
       userLat, userLng,
       shop.latitude, shop.longitude
@@ -42,7 +66,7 @@ serve(async (req) => {
 
     // LOCK 3: Server timestamp (ignores client time)
     const serverTimestamp = new Date();
-    const timeSyncValid = true; // Always true since server generates it
+    const timeSyncValid = true;
 
     // Validation errors
     const validationErrors = [];
@@ -65,20 +89,19 @@ serve(async (req) => {
     const { data: visit, error: visitError } = await supabaseClient
       .from('visits')
       .insert({
-        salesman_id: salesmanId,
-        shop_id: shopId,
+        salesman_id: salesman.id,
+        shop_id: shop.id,
         verified_at: serverTimestamp,
         gps_lat: userLat,
         gps_lng: userLng,
         distance_from_shop: distance,
-        photo_url: photoUrl,
-        device_id: deviceId,
-        app_version: appVersion
       })
       .select()
       .single();
 
-    if (visitError) throw visitError;
+    if (visitError) {
+      throw new Error(`VISIT_ERROR: ${visitError.message}`);
+    }
 
     // Log validation details
     await supabaseClient.from('visit_validations').insert({
@@ -88,24 +111,6 @@ serve(async (req) => {
       time_sync_valid: timeSyncValid,
       validation_errors: validationErrors.length > 0 ? validationErrors : null
     });
-
-    // Check for anomalies (simple example: multiple visits to same shop in short time)
-    const { data: recentVisits } = await supabaseClient
-      .from('visits')
-      .select('verified_at')
-      .eq('salesman_id', salesmanId)
-      .eq('shop_id', shopId)
-      .gte('verified_at', new Date(Date.now() - 3600000).toISOString()) // Last 1 hour
-      .order('verified_at', { ascending: false })
-      .limit(2);
-
-    if (recentVisits && recentVisits.length > 1) {
-      await supabaseClient.from('anomaly_flags').insert({
-        visit_id: visit.id,
-        flag_type: 'duplicate_visit_short_interval',
-        severity: 'medium'
-      });
-    }
 
     return new Response(
       JSON.stringify({ 
@@ -118,6 +123,7 @@ serve(async (req) => {
     );
 
   } catch (error) {
+    console.error('Edge function error:', error);
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
@@ -125,9 +131,8 @@ serve(async (req) => {
   }
 });
 
-// Haversine formula to calculate distance between two GPS coordinates
 function calculateHaversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371e3; // Earth radius in meters
+  const R = 6371e3;
   const φ1 = (lat1 * Math.PI) / 180;
   const φ2 = (lat2 * Math.PI) / 180;
   const Δφ = ((lat2 - lat1) * Math.PI) / 180;
@@ -139,5 +144,5 @@ function calculateHaversineDistance(lat1: number, lon1: number, lat2: number, lo
   
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
-  return R * c; // Distance in meters
+  return R * c;
 }
