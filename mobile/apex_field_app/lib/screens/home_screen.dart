@@ -4,6 +4,7 @@ import 'login_screen.dart';
 import 'qr_scanner_screen.dart';
 import 'visit_history_screen.dart';
 import 'shop_list_screen.dart';
+import 'about_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -25,6 +26,15 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Apex Home'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.info_outline),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AboutScreen()),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () => _signOut(context),
