@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'login_screen.dart';
 import 'qr_scanner_screen.dart';
 import 'visit_history_screen.dart';
+import 'shop_list_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -64,6 +65,17 @@ class HomeScreen extends StatelessWidget {
               },
               icon: const Icon(Icons.history),
               label: const Text('Visit History'),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ShopListScreen()),
+                );
+              },
+              icon: const Icon(Icons.store),
+              label: const Text('View Shops'),
             ),
           ],
         ),
