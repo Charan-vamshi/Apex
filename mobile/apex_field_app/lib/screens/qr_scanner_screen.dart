@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:geolocator/geolocator.dart';
@@ -123,7 +124,22 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
         return;
       }
 
-      // All validations passed - record visit with photo
+      // Upload photo to Supabase Storage
+      setState(() => _statusMessage = 'Uploading photo...');
+      
+      final fileName = 'visit_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final photoFile = File(photoPath);
+      
+      await Supabase.instance.client.storage
+          .from('visit-photos')
+          .upload(fileName, photoFile);
+
+      // Get public URL
+      final photoUrl = Supabase.instance.client.storage
+          .from('visit-photos')
+          .getPublicUrl(fileName);
+
+      // All validations passed - record visit with photo URL
       final visitResponse = await Supabase.instance.client
           .from('visits')
           .insert({
@@ -133,7 +149,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
             'gps_lat': position.latitude,
             'gps_lng': position.longitude,
             'distance_from_shop': distance,
-            'photo_url': photoPath,
+            'photo_url': photoUrl,
           })
           .select()
           .single();
