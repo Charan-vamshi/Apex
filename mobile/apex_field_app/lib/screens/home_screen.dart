@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'login_screen.dart';
 import 'qr_scanner_screen.dart';
+import 'visit_history_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -52,6 +53,17 @@ class HomeScreen extends StatelessWidget {
               },
               icon: const Icon(Icons.qr_code_scanner),
               label: const Text('Start Visit'),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const VisitHistoryScreen()),
+                );
+              },
+              icon: const Icon(Icons.history),
+              label: const Text('Visit History'),
             ),
           ],
         ),

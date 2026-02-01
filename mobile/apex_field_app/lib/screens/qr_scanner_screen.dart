@@ -3,6 +3,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:math' show cos, sqrt, asin, sin;
+import 'photo_capture_screen.dart';
 
 class QRScannerScreen extends StatefulWidget {
   const QRScannerScreen({super.key});
@@ -109,7 +110,20 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
         return;
       }
 
-      // All validations passed - record visit
+      // Capture photo after validation passes
+      final photoPath = await Navigator.push<String>(
+        context,
+        MaterialPageRoute(builder: (_) => const PhotoCaptureScreen()),
+      );
+
+      if (photoPath == null) {
+        setState(() => _statusMessage = 'Photo required to record visit');
+        await Future.delayed(const Duration(seconds: 2));
+        if (mounted) Navigator.pop(context);
+        return;
+      }
+
+      // All validations passed - record visit with photo
       final visitResponse = await Supabase.instance.client
           .from('visits')
           .insert({
@@ -119,6 +133,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
             'gps_lat': position.latitude,
             'gps_lng': position.longitude,
             'distance_from_shop': distance,
+            'photo_url': photoPath,
           })
           .select()
           .single();
