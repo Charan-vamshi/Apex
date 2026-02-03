@@ -63,17 +63,23 @@
 
     <script src="dashboard.js"></script>
     <script>
-        // Auth check (uses supabase from dashboard.js)
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            if (!session) {
-                window.location.href = 'login.html';
+        // Auth check - wait for dashboard.js to load
+        setTimeout(() => {
+            if (typeof supabase !== 'undefined') {
+                supabase.auth.getSession().then(({ data: { session } }) => {
+                    if (!session) {
+                        window.location.href = 'login.html';
+                    }
+                });
             }
-        });
+        }, 100);
 
         function logout() {
-            supabase.auth.signOut().then(() => {
-                window.location.href = 'login.html';
-            });
+            if (typeof supabase !== 'undefined') {
+                supabase.auth.signOut().then(() => {
+                    window.location.href = 'login.html';
+                });
+            }
         }
     </script>
 </body>
