@@ -3,82 +3,166 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Apex Manager Dashboard</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Apex Manager Login</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .login-container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 400px;
+        }
+        h1 { text-align: center; color: #333; margin-bottom: 10px; }
+        p { text-align: center; color: #666; margin-bottom: 30px; }
+        .input-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; color: #555; font-weight: 500; }
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        input:focus { outline: none; border-color: #667eea; }
+        button {
+            width: 100%;
+            padding: 14px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover { background: #5568d3; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            text-align: center;
+            display: none;
+        }
+        .loading { text-align: center; color: #667eea; margin-top: 10px; }
+    </style>
 </head>
 <body>
-    <div class="header">
-        <h1>Apex Manager Dashboard</h1>
-        <p>Real-time field force monitoring</p>
-        <button onclick="logout()" style="position: absolute; top: 20px; right: 20px; padding: 10px 20px; background: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer;">Logout</button>
+    <div class="login-container">
+        <h1>Apex Manager</h1>
+        <p>Dashboard Login</p>
+        
+        <div class="error" id="errorMsg"></div>
+        
+        <form id="loginForm">
+            <div class="input-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" required placeholder="manager@company.com">
+            </div>
+            
+            <div class="input-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" required placeholder="Enter password">
+            </div>
+            
+            <button type="submit" id="loginBtn">Sign In</button>
+            <div class="loading" id="loading" style="display: none;">Logging in...</div>
+        </form>
     </div>
 
-    <div class="stats">
-        <div class="stat-card">
-            <h3>Total Visits Today</h3>
-            <div class="value" id="totalVisits">0</div>
-        </div>
-        <div class="stat-card">
-            <h3>Active Salesmen</h3>
-            <div class="value" id="activeSalesmen">0</div>
-        </div>
-        <div class="stat-card">
-            <h3>Shops Covered</h3>
-            <div class="value" id="shopsCovered">0</div>
-        </div>
-        <div class="stat-card">
-            <h3>Anomalies Detected</h3>
-            <div class="value" id="anomalies" style="color: #f44336;">0</div>
-        </div>
-    </div>
-
-    <div class="container">
-        <h3 style="margin-bottom: 15px;">Filters</h3>
-        <div class="filters">
-            <input type="date" id="filterDate" onchange="loadDashboard()">
-            <select id="filterSalesman" onchange="loadDashboard()">
-                <option value="">All Salesmen</option>
-            </select>
-            <select id="filterShop" onchange="loadDashboard()">
-                <option value="">All Shops</option>
-            </select>
-            <button onclick="resetFilters()">Reset Filters</button>
-            <button class="export-btn" onclick="exportToCSV()">Export to CSV</button>
-        </div>
-    </div>
-
-    <div class="container">
-        <h3>Visit Trends (Last 7 Days)</h3>
-        <canvas id="visitsChart" class="chart-container"></canvas>
-    </div>
-
-    <div class="container">
-        <h2 style="margin-bottom: 20px;">Recent Visits</h2>
-        <div id="visitsList">
-            <div class="loading">Loading visits...</div>
-        </div>
-    </div>
-
-    <script src="dashboard.js"></script>
     <script>
-        // Auth check - wait for dashboard.js to load
-        setTimeout(() => {
-            if (typeof supabase !== 'undefined') {
-                supabase.auth.getSession().then(({ data: { session } }) => {
-                    if (!session) {
-                        window.location.href = 'login.html';
-                    }
-                });
-            }
-        }, 100);
+        const SUPABASE_URL = 'https://odnfdlybycecqmlkzlmy.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_JYAGEwycAAFeK5aSL-zrlg_HJlOj-7R';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        function logout() {
-            if (typeof supabase !== 'undefined') {
-                supabase.auth.signOut().then(() => {
-                    window.location.href = 'login.html';
+        const OWNER_EMAILS = ['saicharanreddy344@gmail.com', 'coolmoonstech@gmail.com'];
+
+        // Check if already logged in
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session) checkRoleAndRedirect(session.user);
+        });
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const errorMsg = document.getElementById('errorMsg');
+            const loading = document.getElementById('loading');
+            const loginBtn = document.getElementById('loginBtn');
+            
+            errorMsg.style.display = 'none';
+            loading.style.display = 'block';
+            loginBtn.disabled = true;
+            
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
                 });
+                
+                if (error) throw error;
+                
+                await checkRoleAndRedirect(data.user);
+                
+            } catch (error) {
+                errorMsg.textContent = error.message;
+                errorMsg.style.display = 'block';
+                loading.style.display = 'none';
+                loginBtn.disabled = false;
+            }
+        });
+
+        async function checkRoleAndRedirect(user) {
+            try {
+                // Check if user is in database
+                const { data: userData, error } = await supabase
+                    .from('users')
+                    .select('role')
+                    .eq('id', user.id)
+                    .single();
+                
+                if (error || !userData) {
+                    throw new Error('User not found in system');
+                }
+                
+                const role = userData.role;
+                
+                // Check if Owner
+                const isOwner = OWNER_EMAILS.includes(user.email);
+                
+                // Only allow Manager, Admin, or Owner
+                if (role === 'salesman' && !isOwner) {
+                    await supabase.auth.signOut();
+                    throw new Error('Salesmen cannot access web dashboard');
+                }
+                
+                // Store role in session
+                sessionStorage.setItem('userRole', isOwner ? 'owner' : role);
+                sessionStorage.setItem('userEmail', user.email);
+                
+                // Redirect to dashboard
+                window.location.href = 'dashboard.html';
+                
+            } catch (error) {
+                document.getElementById('errorMsg').textContent = error.message;
+                document.getElementById('errorMsg').style.display = 'block';
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('loginBtn').disabled = false;
             }
         }
     </script>

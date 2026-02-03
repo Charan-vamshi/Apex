@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apex Manager Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="header">
+        <h1>Apex Manager Dashboard</h1>
+        <p>Real-time field force monitoring</p>
+        <button onclick="logout()" style="position: absolute; top: 20px; right: 20px; padding: 10px 20px; background: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer;">Logout</button>
+    </div>
+
+    <div class="stats">
+        <div class="stat-card">
+            <h3>Total Visits Today</h3>
+            <div class="value" id="totalVisits">0</div>
+        </div>
+        <div class="stat-card">
+            <h3>Active Salesmen</h3>
+            <div class="value" id="activeSalesmen">0</div>
+        </div>
+        <div class="stat-card">
+            <h3>Shops Covered</h3>
+            <div class="value" id="shopsCovered">0</div>
+        </div>
+        <div class="stat-card">
+            <h3>Anomalies Detected</h3>
+            <div class="value" id="anomalies" style="color: #f44336;">0</div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h3 style="margin-bottom: 15px;">Filters</h3>
+        <div class="filters">
+            <input type="date" id="filterDate" onchange="loadDashboard()">
+            <select id="filterSalesman" onchange="loadDashboard()">
+                <option value="">All Salesmen</option>
+            </select>
+            <select id="filterShop" onchange="loadDashboard()">
+                <option value="">All Shops</option>
+            </select>
+            <button onclick="resetFilters()">Reset Filters</button>
+            <button class="export-btn" onclick="exportToCSV()">Export to CSV</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <h3>Visit Trends (Last 7 Days)</h3>
+        <canvas id="visitsChart" class="chart-container"></canvas>
+    </div>
+
+    <div class="container">
+        <h2 style="margin-bottom: 20px;">Recent Visits</h2>
+        <div id="visitsList">
+            <div class="loading">Loading visits...</div>
+        </div>
+    </div>
+
+    <script src="dashboard.js"></script>
+    <script>
+        // Auth check - wait for dashboard.js to load
+        setTimeout(() => {
+            if (typeof supabase !== 'undefined') {
+                supabase.auth.getSession().then(({ data: { session } }) => {
+                    if (!session) {
+                        window.location.href = 'login.html';
+                    }
+                });
+            }
+        }, 100);
+
+        function logout() {
+            if (typeof supabase !== 'undefined') {
+                supabase.auth.signOut().then(() => {
+                    window.location.href = 'login.html';
+                });
+            }
+        }
+    </script>
+</body>
+</html>
