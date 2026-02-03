@@ -9,6 +9,14 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
+    <script>
+        const session = supabase.auth.getSession();
+        if (!session) {
+            window.location.href = 'login.html';
+        }
+        const userRole = sessionStorage.getItem('userRole');
+        const userEmail = sessionStorage.getItem('userEmail');
+    </script>
     <div class="header">
         <h1>Apex Manager Dashboard</h1>
         <p>Real-time field force monitoring</p>
