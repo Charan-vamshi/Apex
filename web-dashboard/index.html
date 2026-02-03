@@ -9,17 +9,10 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <script>
-        const session = supabase.auth.getSession();
-        if (!session) {
-            window.location.href = 'login.html';
-        }
-        const userRole = sessionStorage.getItem('userRole');
-        const userEmail = sessionStorage.getItem('userEmail');
-    </script>
     <div class="header">
         <h1>Apex Manager Dashboard</h1>
         <p>Real-time field force monitoring</p>
+        <button onclick="logout()" style="position: absolute; top: 20px; right: 20px; padding: 10px 20px; background: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer;">Logout</button>
     </div>
 
     <div class="stats">
@@ -68,6 +61,24 @@
         </div>
     </div>
 
+    <script>
+        const SUPABASE_URL = 'https://odnfdlybycecqmlkzlmy.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_JYAGEwycAAFeK5aSL-zrlg_HJlOj-7R';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // Auth check
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            if (!session) {
+                window.location.href = 'login.html';
+            }
+        });
+
+        function logout() {
+            supabase.auth.signOut().then(() => {
+                window.location.href = 'login.html';
+            });
+        }
+    </script>
     <script src="dashboard.js"></script>
 </body>
 </html>
